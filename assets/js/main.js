@@ -59,6 +59,44 @@
     revealEls.forEach(function (el) { revealObserver.observe(el); });
   }
 
+  /* ---------------- parallax decorative icons (dark sections) ----------------
+     Pure CSS-transform parallax driven by scroll position: each .parallax-icon
+     carries a data-speed multiplier and drifts opposite/with scroll based on
+     its distance from viewport center. Because it reads window.scrollY /
+     getBoundingClientRect() on every scroll+resize tick (throttled to one
+     requestAnimationFrame each), it behaves identically on touch-scroll
+     (mobile) and mouse/trackpad scroll (desktop) - no hover state involved.
+     Skipped entirely under prefers-reduced-motion, leaving icons static.
+  ------------------------------------------------------------------------- */
+  var parallaxEls = Array.prototype.slice.call(document.querySelectorAll('.parallax-icon'));
+  if (parallaxEls.length && !reduceMotion) {
+    var parallaxTicking = false;
+
+    function updateParallax() {
+      var viewportMid = window.innerHeight / 2;
+      parallaxEls.forEach(function (el) {
+        var speed = parseFloat(el.getAttribute('data-speed'));
+        if (!isFinite(speed)) speed = 0.12;
+        var rect = el.getBoundingClientRect();
+        var offsetFromCenter = (rect.top + rect.height / 2) - viewportMid;
+        var shift = (offsetFromCenter * -speed).toFixed(1);
+        el.style.transform = 'translate3d(0,' + shift + 'px,0)';
+      });
+      parallaxTicking = false;
+    }
+
+    function onParallaxScroll() {
+      if (!parallaxTicking) {
+        window.requestAnimationFrame(updateParallax);
+        parallaxTicking = true;
+      }
+    }
+
+    document.addEventListener('scroll', onParallaxScroll, { passive: true });
+    window.addEventListener('resize', onParallaxScroll, { passive: true });
+    updateParallax();
+  }
+
   /* ---------------- live stat counters ----------------
      Security notes:
      - API_BASE is a single, explicit config value (no hardcoded
